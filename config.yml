@@ -1,0 +1,56 @@
+# website-change-monitor: the only file you need to edit.
+# Secrets (API key, webhook URLs) come from environment variables / repository secrets,
+# never from this file. Full reference: README.md > Config reference.
+
+# The pages to watch. Each needs a `url`; `name` is the label in messages.
+# Find good `section` / `skip_sections` / `ignore` values with:
+#   website-change-monitor preview <id or URL>
+pages:
+  - name: GitHub pricing
+    url: https://github.com/pricing
+    # Customer logos and the closing links to the open source, education and nonprofit
+    # programs are not part of the plans. A heading matches when it contains the text.
+    skip_sections: ["Used by more than", "We love people who are changing the world"]
+
+  - name: Notion pricing
+    url: https://www.notion.com/pricing
+
+  - name: Linear pricing
+    url: https://linear.app/pricing
+    # A customer counter that ticks up on its own; not a pricing change.
+    ignore: ['^Trusted by more than']
+
+  - name: Vercel pricing
+    url: https://vercel.com/pricing
+
+# Rules for every page. Any page above can override any of them.
+defaults:
+  # Pricing pages show local currency. A fixed country keeps € and $ from flipping
+  # between runs and looking like a change. null lets the API pick a country.
+  country: us
+  # true: only the page's main content, without menus, header and footer.
+  main_content_only: true
+  # false: compare link text only. Links carry tracking parameters that change per visit.
+  keep_links: false
+  # Regexes; a line that matches anywhere is dropped before comparing. Page lists add to it.
+  ignore: []
+  # A change smaller than this many characters is not sent (it still counts later).
+  min_changed_chars: 1
+  # Runs in a row a new version must be seen before it is sent. 2 helps with A/B tests.
+  confirm_runs: 1
+  # Send one alert when a page could not be read this many runs in a row. 0 = never.
+  alert_after_failures: 3
+
+delivery:
+  # Any of: github_issues, slack, discord, webhook. A destination whose secrets are not
+  # set is skipped. github_issues works in GitHub Actions with no secret at all.
+  destinations: [github_issues, slack, discord, webhook]
+  # Diff lines shown in a chat message. The GitHub issue always has the full diff.
+  diff_lines: 30
+  # On the first run, post one "now watching" message to the chat destinations.
+  baseline_message: true
+  # Labels for new issues. GitHub creates a missing label.
+  issue_labels: [page-change]
+
+# Where the last delivered version of each page is kept. The workflow commits it.
+state_dir: state

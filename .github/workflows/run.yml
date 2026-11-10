@@ -1,0 +1,77 @@
+name: Check pages
+
+on:
+  schedule:
+    # Every 6 hours, UTC. GitHub can start scheduled runs a few minutes late.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: print what would be delivered, send nothing, save nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # commit state/ back when a page changed
+  issues: write # open one issue per change
+
+concurrency:
+  group: page-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check for the API key
+        id: gate
+        env:
+          SCRAPEUNBLOCKER_KEY: ${{ secrets.SCRAPEUNBLOCKER_KEY }}
+        run: |
+          if [ -z "$SCRAPEUNBLOCKER_KEY" ]; then
+            echo "::notice title=Not set up yet::Add the SCRAPEUNBLOCKER_KEY repository secret (Settings > Secrets and variables > Actions) to start watching pages. Nothing was checked."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.gate.outputs.ready == 'true'
+
+      - uses: actions/setup-python@v7
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        if: steps.gate.outputs.ready == 'true'
+        run: python -m pip install .
+
+      - name: Check pages and deliver changes
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          SCRAPEUNBLOCKER_KEY: ${{ secrets.SCRAPEUNBLOCKER_KEY }}
+          # The workflow's own token opens the issues; GITHUB_REPOSITORY is always set.
+          GITHUB_TOKEN: ${{ github.token }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          DRY_RUN_FLAG: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: website-change-monitor run $DRY_RUN_FLAG
+
+      - name: Commit page versions
+        if: ${{ !cancelled() && steps.gate.outputs.ready == 'true' }}
+        run: |
+          git add state/
+          if git diff --cached --quiet; then
+            echo "No page changed; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update watched pages [skip ci]"
+          git pull --rebase
+          git push

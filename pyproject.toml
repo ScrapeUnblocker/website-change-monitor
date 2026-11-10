@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "website-change-monitor"
+version = "0.1.0"
+description = "Watch competitor pricing, plans, changelog and terms pages: real changes arrive as GitHub issues with the diff and as Slack, Discord or webhook messages, on a GitHub Actions schedule."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "ScrapeUnblocker" }]
+keywords = [
+    "website-change-detection",
+    "website-monitor",
+    "change-monitoring",
+    "pricing-page",
+    "competitor-monitoring",
+    "diff",
+    "github-issues",
+    "slack",
+    "discord",
+    "github-actions",
+    "markdown",
+    "scrapeunblocker",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "scrapeunblocker>=0.18.6,<1",
+    "httpx>=0.27",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "pre-commit>=3.5",
+]
+
+[project.urls]
+Homepage = "https://scrapeunblocker.com/?utm_source=github&utm_medium=integration&utm_campaign=example-repos"
+Documentation = "https://docs.scrapeunblocker.com/guides/markdown?utm_source=github&utm_medium=integration&utm_campaign=example-repos"
+Repository = "https://github.com/ScrapeUnblocker/website-change-monitor"
+Issues = "https://github.com/ScrapeUnblocker/website-change-monitor/issues"
+
+[project.scripts]
+website-change-monitor = "website_change_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Stored page text is data, not code.
+extend-exclude = ["state"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
